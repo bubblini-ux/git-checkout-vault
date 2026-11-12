@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# Lesson runner for the Git Checkout Vault.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LESSONS="$ROOT/lessons"
+SANDBOX="${VAULT_SANDBOX:-$ROOT/sandbox}"
+PROGRESS="$SANDBOX/.progress"
+
+# Stop git from ever "falling through" a sandbox into the vault repo itself.
+export GIT_CEILING_DIRECTORIES="$SANDBOX"
+
+if [ -t 1 ]; then B=$'\033[1m'; G=$'\033[32m'; Y=$'\033[33m'; D=$'\033[2m'; N=$'\033[0m'
+else B=; G=; Y=; D=; N=; fi
+
+die() { echo "error: $*" >&2; exit 1; }
+
+usage() {
+  cat <<EOF
+${B}Git Checkout Vault${N} - learn Git by doing
+
+Usage: ./learn <command> [lesson-number]
+
+  list            Show all lessons and your progress
+  start <n>       Build the sandbox for lesson n and print the lesson
+  show <n>        Print the lesson text again
+  check <n>       Verify your work in lesson n
+  reset <n>       Throw the sandbox away and rebuild it
+  solution <n>    Print one possible solution
+
+Example: ./learn start 1
+EOF
+}
+
+resolve() {
+  local n="${1:-}" d
+  [[ "$n" =~ ^[0-9]+$ ]] || die "give a lesson number, e.g. ./learn start 1"
+  n="$(printf '%02d' "$((10#$n))")"
+  d="$(compgen -G "$LESSONS/$n-*" | head -n 1 || true)"
+  [ -n "$d" ] || die "there is no lesson $n (try ./learn list)"
+  echo "$d"
+}
+
+title() { head -n 1 "$1/lesson.md" | sed 's/^# *//'; }
+is_done() { [ -f "$PROGRESS" ] && grep -qx "$1" "$PROGRESS"; }
+
+cmd_list() {
+  local d id mark total=0 done_count=0
+  for d in "$LESSONS"/*/; do
+    d="${d%/}"; id="$(basename "$d")"; total=$((total + 1))
+    if is_done "$id"; then mark="${G}[x]${N}"; done_count=$((done_count + 1))
+    elif [ -d "$SANDBOX/$id" ]; then mark="${Y}[~]${N}"
+    else mark="[ ]"; fi
+    printf '  %s %s\n' "$mark" "$(title "$d")"
+  done
+  printf '\n  %s/%s complete   %s[x] done  [~] in progress%s\n' "$done_count" "$total" "$D" "$N"
+}
+
+build() { # build <lesson-dir> <sandbox-dir>
+  mkdir -p "$2"
+  if ! ( cd "$2" && source "$ROOT/lib/setup.sh" && source "$1/setup.sh" ) >/dev/null; then
+    rm -rf "$2"
+    die "could not build the sandbox for $(basename "$1")"
+  fi
+}
+
+cmd_show() {
+  local d; d="$(resolve "${1:-}")"
+  echo; cat "$d/lesson.md"; echo
+}
+
+cmd_start() {
+  local d id sb
+  d="$(resolve "${1:-}")"; id="$(basename "$d")"; sb="$SANDBOX/$id"
+  if [ -e "$sb" ]; then
+    echo "Lesson already started. Your sandbox is still at:"
+    echo "  cd $sb"
+    echo "Use './learn show ${id%%-*}' to reread it or './learn reset ${id%%-*}' to start over."
+    return
+  fi
+  build "$d" "$sb"
+  cmd_show "$1"
+  echo "${B}Your sandbox:${N}  cd $sb"
+  echo "${B}When done:${N}     $ROOT/learn check ${id%%-*}"
+}
+
+cmd_reset() {
+  local d id sb
+  d="$(resolve "${1:-}")"; id="$(basename "$d")"; sb="$SANDBOX/$id"
+  rm -rf "$sb"
+  build "$d" "$sb"
+  echo "Sandbox rebuilt:  cd $sb"
+}
+
+cmd_check() {
+  local d id sb next
+  d="$(resolve "${1:-}")"; id="$(basename "$d")"; sb="$SANDBOX/$id"
+  [ -d "$sb" ] || die "lesson not started yet - run ./learn start ${id%%-*}"
+  echo "${B}Checking $(title "$d")${N}"
+  if ( set +e +u +o pipefail; cd "$sb" || exit 1
+       source "$ROOT/lib/check.sh"; source "$d/verify.sh"; [ "$FAILS" -eq 0 ] ); then
+    is_done "$id" || echo "$id" >> "$PROGRESS"
+    echo "${G}Lesson complete!${N}"
+    next="$(printf '%02d' "$((10#${id%%-*} + 1))")"
+    if compgen -G "$LESSONS/$next-*" >/dev/null; then
+      echo "Next: ./learn start $((10#$next))"
+    else
+      echo "That was the last lesson. You have opened the vault."
+    fi
+  else
+    echo "${Y}Not there yet.${N} Fix the items marked x and run the check again."
+    echo "${D}Stuck? The lesson ends with hints; './learn solution ${id%%-*}' shows one answer.${N}"
+    return 1
+  fi
+}
+
+cmd_solution() {
+  local d; d="$(resolve "${1:-}")"
+  echo "${D}# One possible solution for $(title "$d")${N}"
+  grep -v -e '^#!' -e '^set -e' "$d/solution.sh"
+}
+
+case "${1:-}" in
+  list|progress) cmd_list ;;
+  start)    cmd_start "${2:-}" ;;
+  show)     cmd_show "${2:-}" ;;
+  check)    cmd_check "${2:-}" ;;
+  reset)    cmd_reset "${2:-}" ;;
+  solution) cmd_solution "${2:-}" ;;
+  ""|help|-h|--help) usage ;;
+  *) usage; exit 1 ;;
+esac

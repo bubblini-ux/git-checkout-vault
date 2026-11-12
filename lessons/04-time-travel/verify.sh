@@ -1,0 +1,6 @@
+check "branch hotfix points at v1.0"              '[ "$(git rev-parse hotfix)" = "$(git rev-parse "v1.0^{commit}")" ]'
+check "you are back on main"                      'on_branch main'
+check "settings.txt on main matches v1.0"         'git diff --quiet v1.0 main -- settings.txt'
+check "recipe.txt still has the newer ingredients" 'git show main:recipe.txt | grep -qx "olive oil"'
+check "history was kept (no reset)"               'git log --format=%s main | grep -qx "Tweak settings"'
+check "nothing left to commit"                    'clean_tree'

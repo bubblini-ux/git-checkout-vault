@@ -1,0 +1,7 @@
+check "feature/login has login.txt"              'git cat-file -e feature/login:login.txt'
+check "feature/signup has signup.txt"            'git cat-file -e feature/signup:signup.txt'
+check "feature/signup does not contain login.txt" 'git rev-parse -q --verify feature/signup && ! git cat-file -e feature/signup:login.txt'
+check "tmp was renamed to experiment"            '! git rev-parse -q --verify refs/heads/tmp && git cat-file -e experiment:idea.txt'
+check "old-idea was deleted"                     '! git rev-parse -q --verify refs/heads/old-idea'
+check "main gained no commits"                   '[ "$(git rev-parse main)" = "$(cat .git/vault-main)" ]'
+check "you are on main"                          'on_branch main'

@@ -1,0 +1,5 @@
+check "feature/payment exists again"                 'git rev-parse -q --verify refs/heads/feature/payment'
+check "feature/payment points at: Add refund flow"   '[ "$(git rev-parse feature/payment)" = "$(cat .git/vault-payment)" ]'
+check "main points at: Add shipping options"         '[ "$(git rev-parse main)" = "$(cat .git/vault-main)" ]'
+check "checkout.txt and shipping.txt are back"       '[ -f checkout.txt ] && [ -f shipping.txt ]'
+check "you are on main with nothing to commit"       'on_branch main && clean_tree'

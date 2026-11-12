@@ -1,0 +1,6 @@
+check "work/ is a clone of origin.git"                 '[ -d work/.git ] && git -C work remote get-url origin | grep -q "origin.git"'
+check "feature/greeting has a commit of its own"       '[ "$(git -C work rev-list --count main..feature/greeting)" -ge 1 ] || [ "$(git -C work rev-list --count origin/main..feature/greeting)" -ge 1 ]'
+check "feature/greeting was pushed to origin"          '[ "$(git -C origin.git rev-parse refs/heads/feature/greeting)" = "$(git -C work rev-parse feature/greeting)" ]'
+check "feature/greeting tracks origin/feature/greeting" '[ "$(git -C work rev-parse --abbrev-ref "feature/greeting@{upstream}")" = "origin/feature/greeting" ]'
+check "your teammate pushed (you ran ../teammate.sh)"  'git -C origin.git log --format=%s main | grep -qx "Add contributing guide"'
+check "your local main matches the server's main"      '[ "$(git -C work rev-parse main)" = "$(git -C origin.git rev-parse main)" ]'

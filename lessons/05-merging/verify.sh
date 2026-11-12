@@ -1,0 +1,7 @@
+check "feature/hours is merged into main"    'git merge-base --is-ancestor feature/hours main && [ -f hours.txt ]'
+check "feature/pricing is merged into main"  'git merge-base --is-ancestor feature/pricing main'
+check "no merge is still in progress"        '[ ! -f .git/MERGE_HEAD ]'
+check "no conflict markers in prices.txt"    '! grep -qE "^(<<<<<<<|=======|>>>>>>>)" prices.txt'
+check "coffee costs 4"                       'grep -qx "coffee: 4" prices.txt && ! grep -q "coffee: 5" prices.txt'
+check "tea was kept"                         'grep -qx "tea: 3" prices.txt'
+check "you are on main with nothing to commit" 'on_branch main && clean_tree'

@@ -1,0 +1,5 @@
+check "main and feature/profile point at the same commit" '[ "$(git rev-parse main)" = "$(git rev-parse feature/profile)" ]'
+check "history contains no merge commits"                 '[ -z "$(git rev-list --merges main)" ]'
+check "the profile commits sit on top of main's commits"  '[ "$(git log --format=%s main | tr "\n" "|")" = "Add avatar upload|Add profile page|Add footer|Add home page|Initial commit|" ]'
+check "no rebase is still in progress"                    '[ ! -d .git/rebase-merge ] && [ ! -d .git/rebase-apply ]'
+check "you are on main with nothing to commit"            'on_branch main && clean_tree'

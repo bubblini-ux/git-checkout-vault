@@ -1,0 +1,8 @@
+check "the garbage edit in story.txt is gone"       'git diff --quiet -- story.txt && ! grep -q garbage story.txt'
+check "passwords.txt is unstaged but still on disk" '[ -f passwords.txt ] && ! git ls-files --error-unmatch passwords.txt'
+check "passwords.txt was never committed"           '[ -z "$(git log --format=%H -- passwords.txt)" ]'
+check "the typo commit message is fixed"            'git log --format=%s | grep -qx "Add chapter two" && ! git log --format=%s | grep -q chpater'
+check "chapter2.txt is still there"                 'git cat-file -e HEAD:chapter2.txt'
+check "spoilers.txt is gone from the project"       '! git cat-file -e HEAD:spoilers.txt'
+check "the Add spoilers commit is still in history" 'git log --format=%s | grep -qx "Add spoilers"'
+check "nothing is staged or modified"               'git diff --quiet && git diff --cached --quiet'

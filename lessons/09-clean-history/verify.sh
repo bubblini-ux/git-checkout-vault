@@ -1,0 +1,6 @@
+check "feature/readme has exactly one commit on top of main" '[ "$(git rev-list --count main..feature/readme)" = 1 ]'
+check "its message is: Add project intro"                    '[ "$(git log -1 --format=%s feature/readme)" = "Add project intro" ]'
+check "the branch content is unchanged"                      'git diff --quiet backup/original feature/readme'
+check "main is untouched"                                    '[ "$(git rev-list --count main)" = 1 ]'
+check "no rebase is still in progress"                       '[ ! -d .git/rebase-merge ] && [ ! -d .git/rebase-apply ]'
+check "nothing left to commit"                               'clean_tree'

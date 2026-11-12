@@ -1,0 +1,7 @@
+check "version.txt on main says 1.0.0"             '[ "$(git show main:version.txt)" = "1.0.0" ]'
+check "the fix commit on main changes only version.txt" '[ "$(git diff --name-only main~1 main)" = "version.txt" ]'
+check "main does not contain ideas.txt"            '! git cat-file -e main:ideas.txt'
+check "feature/search has the fuzzy matching work" 'git show feature/search:search.txt | grep -q "fuzzy matching"'
+check "feature/search has ideas.txt"               'git cat-file -e feature/search:ideas.txt'
+check "the stash is empty"                         '[ -z "$(git stash list)" ]'
+check "you are on feature/search with nothing to commit" 'on_branch feature/search && clean_tree'
